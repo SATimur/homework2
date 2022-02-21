@@ -62,3 +62,15 @@
 /0/100/d/4          /dev/sde   disk        524MB VBOX HARDDISK
 /0/100/d/5          /dev/sdf   disk        524MB VBOX HARDDISK 
 ```
+```
+[vagrant@otuslinux ~]$ lsblk
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda      8:0    0   40G  0 disk
+`-sda1   8:1    0   40G  0 part /
+sdb      8:16   0  500M  0 disk
+sdc      8:32   0  500M  0 disk
+sdd      8:48   0  500M  0 disk
+sde      8:64   0  500M  0 disk
+sdf      8:80   0  500M  0 disk
+sdg      8:96   0  500M  0 disk
+```
