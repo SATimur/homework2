@@ -9,5 +9,39 @@
 
 ## Добавить в Vagrantfile еще дисков
 
-1.берем тестовый стенд от сюда: 
-[https://github.com/erlong15/otus-linux]
+1. Берем тестовый стенд от сюда: [ https://github.com/erlong15/otus-linux ]
+2. Добовляем еще два диска в Vagrantfile:
+```` :box_name => "centos/7",
+        :ip_addr => '192.168.56.2/21',
+        :disks => {
+                :sata1 => {
+                        :dfile => './sata1.vdi',
+                        :size => 500,
+                        :port => 1
+                },
+                :sata2 => {
+                        :dfile => './sata2.vdi',
+                        :size => 500, # Megabytes
+                        :port => 2
+                },
+                :sata3 => {
+                        :dfile => './sata3.vdi',
+                        :size => 500,
+                        :port => 3
+                },
+                :sata4 => {
+                        :dfile => './sata4.vdi',
+                        :size => 500, # Megabytes
+                        :port => 4
+                },
+                :sata5 => {
+                        :dfile => './sata5.vdi',
+                        :size => 500,
+                        :port => 5
+                },
+                :sata6 => {
+                        :dfile => './sata6.vdi',
+                        :size => 500, # Megabytes
+                        :port => 6
+                }
+                ````
