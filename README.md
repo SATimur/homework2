@@ -47,3 +47,16 @@
 ```
 3. Запускаем Vagrant и подключаемся к виртуалке с создаными дисками
    ``` vagrant ssh otuslinux ```
+   
+## собрать R0/R5/R10
+
+ Большую часть выполнил по методичке, так что она врядли будет сильно отличаться.
+ Проверяем наличие дисков командами
+ ``` [root@otuslinux mdadm]#  sudo lshw -short | grep disk
+/0/100/1.1/0.0.0    /dev/sdg   disk        42GB VBOX HARDDISK
+/0/100/d/0          /dev/sda   disk        524MB VBOX HARDDISK
+/0/100/d/1          /dev/sdb   disk        524MB VBOX HARDDISK
+/0/100/d/2          /dev/sdc   disk        524MB VBOX HARDDISK
+/0/100/d/3          /dev/sdd   disk        524MB VBOX HARDDISK
+/0/100/d/4          /dev/sde   disk        524MB VBOX HARDDISK
+/0/100/d/5          /dev/sdf   disk        524MB VBOX HARDDISK ```
