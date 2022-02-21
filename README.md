@@ -46,5 +46,4 @@
                 }
 ```
 3. Запускаем Vagrant и подключаемся к виртуалке с создаными дисками
-   ```vagrant ssh otuslinux
-   ```
+   ``` vagrant ssh otuslinux ```
