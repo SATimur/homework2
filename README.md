@@ -83,3 +83,93 @@ sdg      8:96   0  500M  0 disk
    ```
    mdadm --create --verbose /dev/md0 -l 6 -n 5 /dev/sd{b,c,d,e,f}
    ```
+4. Проверяем, собрался ли RAID командой 
+   ```
+   [root@otuslinux vagrant]# cat /proc/mdstat
+      Personalities : [raid6] [raid5] [raid4]
+      md0 : active raid6 sdf[4] sde[3] sdd[2] sdc[1] sdb[0]
+      1529856 blocks super 1.2 level 6, 512k chunk, algorithm 2 [5/5] [UUUUU]
+   ```
+5. Создаем запасной диск (Hot Spare)
+   Если в массиве будет запасной диск для горячей замены, при выходе из строя одного из основных дисков, его место займет запасной.
+   Диском Hot Spare станет тот, который просто будет добавлен к массиву:
+   ```
+   mdadm /dev/md0 --add /dev/sdg
+   ```
+   Проверяем наши диски:
+      ```
+          [root@otuslinux vagrant]# mdadm -D /dev/md0
+          /dev/md0:
+                   Version : 1.2
+          Creation Time : Mon Feb 21 06:42:42 2022
+          Raid Level : raid6
+          Array Size : 1529856 (1494.00 MiB 1566.57 MB)
+          Used Dev Size : 509952 (498.00 MiB 522.19 MB)
+          Raid Devices : 5
+          Total Devices : 6
+          Persistence : Superblock is persistent
+
+          Update Time : Mon Feb 21 06:59:44 2022
+          State : clean
+          Active Devices : 5
+          Working Devices : 6
+          Failed Devices : 0
+          Spare Devices : 1
+
+                    Layout : left-symmetric
+                Chunk Size : 512K
+
+          Consistency Policy : resync
+
+                     Name : otuslinux:0  (local to host otuslinux)
+                     UUID : 63d02509:462bd8ee:1c5ae473:189da4b0
+                     Events : 18
+
+         Number   Major   Minor   RaidDevice State
+           0       8       16        0      active sync   /dev/sdb
+           1       8       32        1      active sync   /dev/sdc
+           2       8       48        2      active sync   /dev/sdd
+           3       8       64        3      active sync   /dev/sde
+           4       8       80        4      active sync   /dev/sdf
+
+           5       8       96        -      spare   /dev/sdg
+     ```   
+6.Создание конфигурационного файла mdadm.conf
+  Снаùала убедимся, что информаøиā верна:
+  ```
+   [root@otuslinux vagrant]# mdadm --detail --scan --verbose
+   ARRAY /dev/md0 level=raid6 num-devices=5 metadata=1.2 name=otuslinux:0 UUID=63d02509:462bd8ee:1c5ae473:189da4b0
+   devices=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
+  ```
+ Теперь создадим файл mdadm.conf
+ ```
+    [root@otuslinux vagrant]# echo "DEVICE partitions" > /etc/mdadm/mdadm.conf
+    [root@otuslinux vagrant]# mdadm --detail --scan --verbose | awk '/ARRAY/ {print}' >> /etc/mdadm/mdadm.conf
+ ```
+7. Сломать/починить RAID
+   Ломаем один из дисков в нашем RAID-де, после чего на замену должен встать диск из Hot Spare
+   ```
+      mdadm /dev/md0 --fail /dev/sdb
+   ```
+   Проверям наш RAID:
+   ```
+      [root@otuslinux vagrant]# mdadm /dev/md0 --fail /dev/sdb
+      Number   Major   Minor   RaidDevice State
+       5       8       96        0      active sync   /dev/sdg
+       1       8       32        1      active sync   /dev/sdc
+       2       8       48        2      active sync   /dev/sdd
+       3       8       64        3      active sync   /dev/sde
+       4       8       80        4      active sync   /dev/sdf
+
+       0       8       16        -      faulty   /dev/sdb
+   ```
+8. Удалим “сломанный” диск из массива:
+   ````
+       [root@otuslinux vagrant]# mdadm /dev/md0 --remove /dev/sdb
+       mdadm: hot removed /dev/sdb from /dev/md0
+   ````
+   Добавляем его в RAID
+   ````
+       [root@otuslinux vagrant]# mdadm /dev/md0 --add /dev/sdb
+       mdadm: added /dev/sdb
+   ````
