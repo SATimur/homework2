@@ -5,7 +5,6 @@
 4. прописать собранный рейд в конфиг, чтобы рейд собирался при загрузке;
 5. создать GPT раздел и 5 партиций. В качестве проверки принимаются - измененный Vagrantfile, скрипт для создания рейда, конф для автосборки рейда при загрузке.
 6. Vagrantfile, который сразу собирает систему с подключенным рейдом и смонтированными разделами. После перезагрузки стенда разделы должны автоматически примонтироваться.
-7. перенести работающую систему с одним диском на RAID 1. Даунтайм на загрузку с нового диска предполагается. В качестве проверки принимается вывод команды lsblk до и после и описание хода решения (можно воспользоваться утилитой Script).
 
 ## Добавить в Vagrantfile еще дисков
 
@@ -189,5 +188,117 @@ sdg      8:96   0  500M  0 disk
    
 ## Создать GPT раздел, пять партиций и смонтировать их на диск   
 
+1. Создаем раздел GPT на RAID
+   ```
+      [root@otuslinux vagrant]# mkfs.ext4 -F /dev/md0
+      mke2fs 1.42.9 (28-Dec-2013)
+      Filesystem label=
+      OS type: Linux
+      Block size=4096 (log=2)
+      Fragment size=4096 (log=2)
+      Stride=128 blocks, Stripe width=384 blocks
+      95616 inodes, 382464 blocks
+      19123 blocks (5.00%) reserved for the super user
+      First data block=0
+      Maximum filesystem blocks=392167424
+      12 block groups
+      32768 blocks per group, 32768 fragments per group
+      7968 inodes per group
+      Superblock backups stored on blocks:
+                  32768, 98304, 163840, 229376, 294912
 
-   
+      Allocating group tables: done
+      Writing inode tables: done
+      Creating journal (8192 blocks): done
+      Writing superblocks and filesystem accounting information: done
+   ```
+2. Создание каталога для монтирования и монтируем его:
+   ```
+      [root@otuslinux vagrant]# mkdir -p /mnt/md0
+      [root@otuslinux vagrant]# mount /dev/md0 /mnt/md0
+      [root@otuslinux vagrant]# df -h
+      Filesystem      Size  Used Avail Use% Mounted on
+      devtmpfs        489M     0  489M   0% /dev
+      tmpfs           496M     0  496M   0% /dev/shm
+      tmpfs           496M   20M  477M   4% /run
+      tmpfs           496M     0  496M   0% /sys/fs/cgroup
+      /dev/sda1        40G  8.7G   32G  22% /
+      tmpfs           100M     0  100M   0% /run/user/1000
+      /dev/md0        1.5G  4.4M  1.4G   1% /mnt/md0
+   ```
+3. Добавляем конфигурацию mdadm в автозапуск:
+   ```
+      mdadm --verbose --detail -scan > /etc/mdadm.conf
+   ```
+## Vagrantfile, который сразу собирает систему с подключенным рейдом и смонтированными разделами. После перезагрузки стенда разделы должны автоматически примонтироваться.
+
+1. Редактируем блок в файле Vagrantfile
+   ```
+         box.vm.provision "shell", inline: <<-SHELL
+              mkdir -p ~root/.ssh
+              cp ~vagrant/.ssh/auth* ~root/.ssh
+              yum install -y mdadm smartmontools hdparm gdisk
+                  mdadm --create --verbose /dev/md0 --level=6 --raid-devices=5 /dev/sdb /dev/sdc /dev/sdd /dev/sde /dev/sdf
+                  mdadm /dev/md0 --add /dev/sdg
+                  mkfs.ext4 -F /dev/md0
+                  mkdir /mnt/md0
+                  mount /dev/md0 /mnt/md0
+                  mdadm --verbose --detail -scan > /etc/mdadm.conf
+                  echo "/dev/md0    /mnt/md0    ext4    defaults    0    1" >> /etc/fstab
+          SHELL
+    ```
+2. Проверяем:
+   ```
+      [vagrant@otuslinux ~]$ df -h
+      Filesystem      Size  Used Avail Use% Mounted on
+      devtmpfs        489M     0  489M   0% /dev
+      tmpfs           496M     0  496M   0% /dev/shm
+      tmpfs           496M  6.7M  489M   2% /run 
+      tmpfs           496M     0  496M   0% /sys/fs/cgroup
+      /dev/sda1        40G  7.7G   33G  20% /
+      /dev/md0        1.5G  4.4M  1.4G   1% /mnt/md0
+      tmpfs           100M     0  100M   0% /run/user/1000     
+   ```
+  Перезагружаем и снова проверяем:
+  ```
+     [vagrant@otuslinux ~]$ df -h
+     Filesystem      Size  Used Avail Use% Mounted on
+     devtmpfs        489M     0  489M   0% /dev
+     tmpfs           496M     0  496M   0% /dev/shm
+     tmpfs           496M  6.7M  489M   2% /run
+     tmpfs           496M     0  496M   0% /sys/fs/cgroup
+     /dev/sda1        40G  7.7G   33G  20% /
+     /dev/md0        1.5G  4.4M  1.4G   1% /mnt/md0
+     tmpfs           100M     0  100M   0% /run/user/1000
+  ```
+  ```
+     [root@otuslinux vagrant]# lsblk
+     NAME   MAJ:MIN RM  SIZE RO TYPE  MOUNTPOINT
+     sda      8:0    0   40G  0 disk
+     `-sda1   8:1    0   40G  0 part  /
+     sdb      8:16   0  500M  0 disk
+     `-md0    9:0    0  1.5G  0 raid6 /mnt/md0
+     sdc      8:32   0  500M  0 disk
+     `-md0    9:0    0  1.5G  0 raid6 /mnt/md0
+     sdd      8:48   0  500M  0 disk
+     `-md0    9:0    0  1.5G  0 raid6 /mnt/md0
+     sde      8:64   0  500M  0 disk
+     `-md0    9:0    0  1.5G  0 raid6 /mnt/md0
+     sdf      8:80   0  500M  0 disk
+     `-md0    9:0    0  1.5G  0 raid6 /mnt/md0
+     sdg      8:96   0  500M  0 disk
+     `-md0    9:0    0  1.5G  0 raid6 /mnt/md0
+  ```
+  ```
+      [root@otuslinux vagrant]# mdadm -D /dev/md0
+        Number   Major   Minor   RaidDevice State
+       0       8       16        0      active sync   /dev/sdb
+       1       8       32        1      active sync   /dev/sdc
+       2       8       48        2      active sync   /dev/sdd
+       3       8       64        3      active sync   /dev/sde
+       4       8       80        4      active sync   /dev/sdf
+
+       5       8       96        -      spare   /dev/sdg
+  ```
+  
+  
