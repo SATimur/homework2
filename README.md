@@ -173,3 +173,21 @@ sdg      8:96   0  500M  0 disk
        [root@otuslinux vagrant]# mdadm /dev/md0 --add /dev/sdb
        mdadm: added /dev/sdb
    ````
+   Проверяем результат:
+   ````
+       [root@otuslinux vagrant]# mdadm -D /dev/md0
+        Number   Major   Minor   RaidDevice State
+       5       8       96        0      active sync   /dev/sdg
+       1       8       32        1      active sync   /dev/sdc
+       2       8       48        2      active sync   /dev/sdd
+       3       8       64        3      active sync   /dev/sde
+       4       8       80        4      active sync   /dev/sdf
+
+       6       8       16        -      spare   /dev/sdb
+   ````
+   Видим счто диск успешно заменен. Двигаемся дальше.
+   
+## Создать GPT раздел, пять партиций и смонтировать их на диск   
+
+
+   
