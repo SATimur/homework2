@@ -11,7 +11,7 @@
 
 1. Берем тестовый стенд от сюда: [ https://github.com/erlong15/otus-linux ]
 2. Добовляем еще два диска в Vagrantfile:
-```` :box_name => "centos/7",
+```  :box_name => "centos/7",
         :ip_addr => '192.168.56.2/21',
         :disks => {
                 :sata1 => {
@@ -44,4 +44,7 @@
                         :size => 500, # Megabytes
                         :port => 6
                 }
-````
+```
+3. Запускаем Vagrant и подключаемся к виртуалке с создаными дисками
+   ```vagrant ssh otuslinux
+   ```
